@@ -101,14 +101,25 @@ export default function TesterPage() {
       toast.error('Please enter a regular expression first.');
       return;
     }
-    const nonEmpty = testStrings.filter((s) => s !== '');
-    if (nonEmpty.length === 0) {
+
+    // If multiple strings are present and some are empty trailing rows, filter them out;
+    // but if only empty string is present, allow testing the empty string.
+    let stringsToTest = testStrings;
+    if (stringsToTest.length > 1) {
+      const nonEmpty = stringsToTest.filter((s) => s !== '');
+      if (nonEmpty.length > 0) {
+        stringsToTest = nonEmpty;
+      }
+    }
+
+    if (stringsToTest.length === 0) {
       toast.error('Please enter at least one test string.');
       return;
     }
+
     setLoading(true);
     try {
-      const data = await regexService.test(regex, flags, nonEmpty);
+      const data = await regexService.test(regex, flags, stringsToTest);
       setResults(data);
       setBreakdown(data.breakdown || []);
       setActiveTab('results');
@@ -117,14 +128,22 @@ export default function TesterPage() {
       regexService.saveToLocalHistory({
         regex,
         flags,
-        testStrings: nonEmpty,
+        testStrings: stringsToTest,
         results: data.results,
         summary: data.summary,
       });
 
-      toast.success(`Tested ${nonEmpty.length} string(s) — ${data.summary.accepted} accepted, ${data.summary.rejected} rejected`);
+      toast.success(
+        `Tested ${stringsToTest.length} string(s) — ${data.summary.accepted} accepted, ${data.summary.rejected} rejected`
+      );
     } catch (err) {
-      const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to test regex';
+      const msg =
+        err.userMessage ||
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        (Array.isArray(err.response?.data?.errors) && err.response.data.errors[0]?.msg) ||
+        err.message ||
+        'Failed to test regex';
       toast.error(msg);
     } finally {
       setLoading(false);

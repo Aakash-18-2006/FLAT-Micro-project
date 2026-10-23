@@ -1,21 +1,63 @@
 import api from './api';
 import { historyService } from './historyService';
+import { compileRegex, testMultipleStrings, breakdownPattern } from './regexEngine';
 
 export const regexService = {
   /**
-   * Test regex against multiple strings — real native engine on backend
+   * Test regex against multiple strings.
+   * Tries backend API first; falls back to local JS RegExp engine on network/server errors.
    */
-  async test(regex, flags, testStrings) {
-    const { data } = await api.post('/regex/test', { regex, flags, testStrings });
-    return data;
+  async test(regex, flags = '', testStrings = []) {
+    try {
+      const { data } = await api.post('/regex/test', { regex, flags, testStrings });
+      return data;
+    } catch (err) {
+      // If the backend actively rejected with a 400 (e.g. invalid regex syntax), respect that error
+      if (err.response && err.response.status === 400) {
+        throw err;
+      }
+
+      // On network failure, timeout, CORS error, or 5xx, execute with native engine
+      console.warn('Backend API unavailable. Using native browser RegExp engine:', err.userMessage || err.message);
+      const localResult = testMultipleStrings(regex, flags, testStrings);
+
+      if (!localResult.valid) {
+        const error = new Error(localResult.error || 'Invalid regular expression');
+        error.userMessage = localResult.error || 'Invalid regular expression';
+        throw error;
+      }
+
+      const breakdown = breakdownPattern(regex);
+
+      return {
+        success: true,
+        regex,
+        flags,
+        breakdown,
+        results: localResult.results,
+        summary: {
+          total: localResult.results.length,
+          accepted: localResult.results.filter((r) => r.accepted).length,
+          rejected: localResult.results.filter((r) => !r.accepted).length,
+        },
+        source: 'local',
+      };
+    }
   },
 
   /**
-   * Validate regex pattern syntax and retrieve token breakdown
+   * Validate regex pattern syntax and retrieve token breakdown.
    */
   async validate(regex, flags = '') {
-    const { data } = await api.post('/regex/validate', { regex, flags });
-    return data;
+    try {
+      const { data } = await api.post('/regex/validate', { regex, flags });
+      return data;
+    } catch {
+      // Fall back to local validation
+      const { valid, error } = compileRegex(regex, flags);
+      const breakdown = valid ? breakdownPattern(regex) : [];
+      return { success: true, valid, error, breakdown };
+    }
   },
 
   /**

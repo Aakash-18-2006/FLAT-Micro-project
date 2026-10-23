@@ -9,11 +9,10 @@ router.post(
   '/test',
   [
     body('regex')
-      .trim()
-      .notEmpty()
+      .isString()
       .withMessage('Regex pattern is required')
-      .isLength({ max: 500 })
-      .withMessage('Regex too long'),
+      .isLength({ min: 1, max: 500 })
+      .withMessage('Regex pattern must be between 1 and 500 characters'),
     body('flags')
       .optional()
       .isString()
@@ -35,11 +34,10 @@ router.post(
   '/validate',
   [
     body('regex')
-      .trim()
-      .notEmpty()
+      .isString()
       .withMessage('Regex pattern is required')
-      .isLength({ max: 500 })
-      .withMessage('Regex too long'),
+      .isLength({ min: 1, max: 500 })
+      .withMessage('Regex pattern must be between 1 and 500 characters'),
     body('flags')
       .optional()
       .isString()

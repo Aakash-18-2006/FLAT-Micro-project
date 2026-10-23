@@ -9,7 +9,14 @@ const testRegex = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+      const errList = errors.array();
+      const firstMsg = errList[0]?.msg || 'Validation failed';
+      return res.status(400).json({
+        success: false,
+        message: firstMsg,
+        error: firstMsg,
+        errors: errList,
+      });
     }
 
     const { regex, flags = '', testStrings } = req.body;
@@ -20,8 +27,8 @@ const testRegex = async (req, res, next) => {
     if (!engineResult.valid) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid regular expression',
-        error: engineResult.error,
+        message: engineResult.error || 'Invalid regular expression',
+        error: engineResult.error || 'Invalid regular expression',
       });
     }
 
@@ -51,6 +58,19 @@ const testRegex = async (req, res, next) => {
  */
 const validateRegex = async (req, res, next) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errList = errors.array();
+      const firstMsg = errList[0]?.msg || 'Validation failed';
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        message: firstMsg,
+        error: firstMsg,
+        errors: errList,
+      });
+    }
+
     const { regex, flags = '' } = req.body;
     const { valid, error } = compileRegex(regex, flags);
     const breakdown = valid ? breakdownPattern(regex) : [];

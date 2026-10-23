@@ -16,32 +16,42 @@ const app = express();
 // ─── Security Middleware ────────────────────────────────────────────────────
 app.use(helmet());
 
-// Production CORS configuration using CLIENT_URL
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(',').map((url) => url.trim().replace(/\/$/, ''))
-  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+// Production CORS configuration
+const configuredClientUrls = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((url) => url.trim().replace(/\/+$/, ''))
+  : [];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. curl, uptime probes, mobile)
       if (!origin) return callback(null, true);
-      // Wildcard allow
-      if (process.env.CLIENT_URL === '*') return callback(null, true);
-      // Configured production client URLs
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+
+      // Wildcard allow or no CLIENT_URL configured
+      if (!process.env.CLIENT_URL || process.env.CLIENT_URL === '*' || configuredClientUrls.includes('*')) {
         return callback(null, true);
       }
-      // Allow localhost in non-production environments
-      if (
-        process.env.NODE_ENV !== 'production' &&
-        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
-      ) {
+
+      const cleanOrigin = origin.replace(/\/+$/, '');
+
+      // Allow configured production client URLs
+      if (configuredClientUrls.includes(cleanOrigin) || configuredClientUrls.includes(origin)) {
         return callback(null, true);
       }
-      return callback(null, false);
+
+      // Allow all Vercel deployment preview and production domains
+      if (/^https:\/\/[a-zA-Z0-9_.-]+\.vercel\.app$/.test(cleanOrigin)) {
+        return callback(null, true);
+      }
+
+      // Allow localhost in development
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)) {
+        return callback(null, true);
+      }
+
+      // In stateless public educational tool, permit any origin as safe fallback
+      return callback(null, true);
     },
-    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
@@ -50,13 +60,14 @@ app.use(
 // ─── Rate Limiting ──────────────────────────────────────────────────────────
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300,
+  max: 500,
   message: { success: false, message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 app.use('/api/', generalLimiter);
+app.use('/regex/', generalLimiter);
 
 // ─── Body Parsing ───────────────────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
@@ -68,6 +79,17 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // ─── Root & Health Check Routes ─────────────────────────────────────────────
+const sendHealth = (req, res) => {
+  res.json({
+    success: true,
+    message: 'RegexMind API is running',
+    version: '1.0.0',
+    mode: 'stateless',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+};
+
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -78,19 +100,12 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'RegexMind API is running',
-    version: '1.0.0',
-    mode: 'stateless',
-    uptime: Math.floor(process.uptime()),
-    timestamp: new Date().toISOString(),
-  });
-});
+app.get('/api/health', sendHealth);
+app.get('/health', sendHealth);
 
-// ─── API Routes ─────────────────────────────────────────────────────────────
+// ─── API Routes (Mounted on both /api/regex and /regex for resilience) ───────
 app.use('/api/regex', regexRoutes);
+app.use('/regex', regexRoutes);
 
 // 404 handler
 app.use((req, res) => {

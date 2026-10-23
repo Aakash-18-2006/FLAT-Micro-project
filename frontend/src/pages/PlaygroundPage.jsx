@@ -57,7 +57,13 @@ export default function PlaygroundPage() {
       setBreakdown(data.breakdown || []);
       if (showToast) toast.success(`${data.summary.accepted}/${data.summary.total} accepted`);
     } catch (err) {
-      const msg = err.response?.data?.error || err.response?.data?.message || 'Test failed';
+      const msg =
+        err.userMessage ||
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        (Array.isArray(err.response?.data?.errors) && err.response.data.errors[0]?.msg) ||
+        err.message ||
+        'Test failed';
       if (showToast) toast.error(msg);
     } finally {
       setLoading(false);
