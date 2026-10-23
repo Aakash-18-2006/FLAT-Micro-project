@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
 import { regexService } from '../services/regexService';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 export default function HistoryPage() {
-  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [records, setRecords] = useState([]);
@@ -21,17 +19,20 @@ export default function HistoryPage() {
       const data = await regexService.getHistory(page, 20, q);
       setRecords(data.data);
       setPagination(data.pagination);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to load history');
+    } catch {
+      toast.error('Failed to load history');
     } finally {
       setLoading(false);
     }
   }, [search]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
     fetchHistory(1, '');
-  }, [isAuthenticated]);
+
+    const handleUpdate = () => fetchHistory(1, search);
+    window.addEventListener('history:updated', handleUpdate);
+    return () => window.removeEventListener('history:updated', handleUpdate);
+  }, [fetchHistory, search]);
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
@@ -58,12 +59,12 @@ export default function HistoryPage() {
   };
 
   const clearAll = async () => {
-    if (!confirm('Clear ALL history? This cannot be undone.')) return;
+    if (!confirm('Clear ALL local history? This cannot be undone.')) return;
     try {
       const data = await regexService.clearAllHistory();
       setRecords([]);
       setPagination({ page: 1, pages: 1, total: 0 });
-      toast.success(data.message);
+      toast.success(data.message || 'History cleared');
     } catch {
       toast.error('Failed to clear history');
     }
@@ -84,30 +85,13 @@ export default function HistoryPage() {
     });
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="page">
-        <div className="empty-state" style={{ minHeight: '60vh' }}>
-          <div className="empty-state-icon">🔒</div>
-          <div className="empty-state-title">Sign In Required</div>
-          <div className="empty-state-desc">
-            Please sign in to view your test history.
-          </div>
-          <button className="btn btn-primary mt-4" onClick={() => navigate('/login')}>
-            Sign In
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <h1 className="page-title">🕐 Test History</h1>
           <p className="page-subtitle">
-            {pagination.total} saved test{pagination.total !== 1 ? 's' : ''}
+            {pagination.total} saved test{pagination.total !== 1 ? 's' : ''} (stored locally in browser)
           </p>
         </div>
         {records.length > 0 && (
@@ -151,7 +135,9 @@ export default function HistoryPage() {
             {search ? 'No matching history' : 'No history yet'}
           </div>
           <div className="empty-state-desc">
-            {search ? 'Try a different search term.' : 'Start testing regex patterns to build your history.'}
+            {search
+              ? 'Try a different search term.'
+              : 'Start testing regex patterns in the Regex Tester and your history will be saved here automatically.'}
           </div>
           <button className="btn btn-primary mt-4" onClick={() => navigate('/')}>
             ⚡ Start Testing

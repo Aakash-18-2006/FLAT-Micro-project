@@ -4,11 +4,15 @@
   "private": true,
   "description": "FLAT Micro Project - RegexMind",
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"magenta,cyan\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:all": "concurrently -n \"BACKEND,FRONTEND\" -c \"magenta,cyan\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
     "start:backend": "npm --prefix backend start",
     "test": "npm --prefix backend test",
     "test:backend": "npm --prefix backend test"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
   }
 }

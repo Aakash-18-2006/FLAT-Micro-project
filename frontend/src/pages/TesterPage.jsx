@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { regexService } from '../services/regexService';
-import { useAuth } from '../hooks/useAuth';
 import { REGEX_EXAMPLES } from '../utils/regexExamples';
 import toast from 'react-hot-toast';
 import ResultsPanel from '../components/regex/ResultsPanel';
@@ -10,7 +9,6 @@ import PatternBreakdown from '../components/regex/PatternBreakdown';
 const MAX_STRINGS = 20;
 
 export default function TesterPage() {
-  const { isAuthenticated } = useAuth();
   const location = useLocation();
 
   const [regex, setRegex] = useState('');
@@ -110,10 +108,20 @@ export default function TesterPage() {
     }
     setLoading(true);
     try {
-      const data = await regexService.test(regex, flags, nonEmpty, isAuthenticated);
+      const data = await regexService.test(regex, flags, nonEmpty);
       setResults(data);
       setBreakdown(data.breakdown || []);
       setActiveTab('results');
+      
+      // Save test run directly into local browser history
+      regexService.saveToLocalHistory({
+        regex,
+        flags,
+        testStrings: nonEmpty,
+        results: data.results,
+        summary: data.summary,
+      });
+
       toast.success(`Tested ${nonEmpty.length} string(s) — ${data.summary.accepted} accepted, ${data.summary.rejected} rejected`);
     } catch (err) {
       const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to test regex';
@@ -121,7 +129,7 @@ export default function TesterPage() {
     } finally {
       setLoading(false);
     }
-  }, [regex, flags, testStrings, isAuthenticated]);
+  }, [regex, flags, testStrings]);
 
   const loadExample = (example) => {
     setRegex(example.regex);
@@ -139,18 +147,20 @@ export default function TesterPage() {
           <h1 className="page-title">⚡ Regex Tester</h1>
           <p className="page-subtitle">Test regular expressions against real strings instantly</p>
         </div>
-        {!isAuthenticated && (
-          <div style={{
-            background: 'var(--info-bg)',
-            border: '1px solid rgba(59,130,246,0.2)',
-            borderRadius: 'var(--radius-md)',
-            padding: '8px 14px',
-            fontSize: '0.8rem',
-            color: 'var(--info)',
-          }}>
-            💡 <a href="/login" style={{ color: 'inherit', fontWeight: 600, textDecoration: 'underline' }}>Sign in</a> to save test history
-          </div>
-        )}
+        <div style={{
+          background: 'rgba(59,130,246,0.1)',
+          border: '1px solid rgba(59,130,246,0.25)',
+          borderRadius: 'var(--radius-md)',
+          padding: '8px 14px',
+          fontSize: '0.8rem',
+          color: 'var(--info)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}>
+          <span>💾</span>
+          <span>Test history saved locally in your browser</span>
+        </div>
       </div>
 
       <div className="tester-layout">

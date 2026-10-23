@@ -10,7 +10,7 @@
 - **Real Regex Engine**: No mock results, no hardcoded validation, no AI generation. Every test string is evaluated dynamically using JavaScript's native `RegExp` execution engine with execution timing and match index offsets.
 - **FLAT-Compliant**: Focused exclusively on Regular Expression theory (concatenation, alternation, Kleene star, quantifiers, anchors, character classes, lookarounds).
 - **Interactive Pattern Breakdown**: Real-time syntax highlighting and token breakdown mapping regex syntax elements to their theoretical roles (quantifiers, anchors, classes, groups).
-- **History & Persistence**: Full user authentication (JWT + bcrypt) with MongoDB storage of validated patterns, flags, test cases, and match metrics.
+- **Zero-Database Architecture**: 100% stateless backend with client-side history persistence via browser `localStorage`. No database setup, maintenance, or connection latency.
 - **Live Playground Mode**: Real-time evaluation as you type with match count and highlight indicators.
 - **Curated Educational Library**: 14 categorized regex patterns with test cases + an 11-topic FLAT learning guide with interactive code examples.
 - **Cyberpunk / Glassmorphic UI**: High-contrast dark theme with red/crimson accents, smooth transitions, mobile responsiveness, and dark/light mode toggle.
@@ -23,109 +23,137 @@
 FLAT micro project/
 ├── backend/
 │   ├── src/
-│   │   ├── config/database.js         # Mongoose connection with retry
 │   │   ├── controllers/
-│   │   │   ├── authController.js      # User registration, login, profile
-│   │   │   └── regexController.js     # Regex testing, validation, history CRUD
+│   │   │   └── regexController.js     # Stateless regex testing & validation
 │   │   ├── middleware/
-│   │   │   ├── auth.js                # JWT Bearer token authentication
 │   │   │   └── errorHandler.js        # Global error & validation handler
-│   │   ├── models/
-│   │   │   ├── User.js                # User schema + bcrypt password hashing
-│   │   │   └── RegexHistory.js        # Test history schema + performance metrics
 │   │   ├── routes/
-│   │   │   ├── authRoutes.js          # /api/auth routes
-│   │   │   └── regexRoutes.js         # /api/regex routes
+│   │   │   └── regexRoutes.js         # /api/regex routes (test & validate)
 │   │   ├── services/
 │   │   │   └── regexEngine.js         # Pure JS RegExp compiler & tester
-│   │   └── app.js                     # Express app setup, helmet, cors, rate limiting
-│   └── tests/
-│       └── regexEngine.test.js        # 18 Jest unit tests for regex engine
+│   │   └── app.js                     # Express app, helmet, CORS, rate limiting, health check
+│   ├── tests/
+│   │   └── regexEngine.test.js        # 18 Jest unit tests for regex engine
+│   ├── .env.example                   # Backend environment template
+│   └── package.json                   # Backend dependencies & npm start script
 │
-└── frontend/
-    ├── src/
-    │   ├── components/
-    │   │   ├── layout/
-    │   │   │   ├── Navbar.jsx         # Navigation bar with user avatar & theme toggle
-    │   │   │   └── AppLayout.jsx      # Main layout wrapper + toast notifications
-    │   │   └── regex/
-    │   │       ├── PatternBreakdown.jsx # Color-coded regex breakdown & syntax cheatsheet
-    │   │       └── ResultsPanel.jsx   # Accept/Reject cards, match highlights, metrics
-    │   ├── hooks/
-    │   │   ├── useAuth.jsx            # Authentication context & state
-    │   │   └── useTheme.jsx           # Theme toggle (dark/light) context
-    │   ├── pages/
-    │   │   ├── TesterPage.jsx         # Main multi-string regex validator
-    │   │   ├── PlaygroundPage.jsx     # Live single-text real-time tester
-    │   │   ├── ExamplesPage.jsx       # 14 categorized pattern templates
-    │   │   ├── LearnPage.jsx          # 11-topic FLAT Regular Expressions guide
-    │   │   ├── HistoryPage.jsx        # User test history with search & re-testing
-    │   │   ├── LoginPage.jsx          # User login
-    │   │   ├── RegisterPage.jsx       # User registration with password strength meter
-    │   │   └── SettingsPage.jsx       # Account info & history management
-    │   ├── services/
-    │   │   ├── api.js                 # Axios instance with JWT interceptor
-    │   │   ├── authService.js         # Auth API calls
-    │   │   └── regexService.js        # Regex testing & history API calls
-    │   ├── utils/
-    │   │   └── regexExamples.js       # Curated example patterns & explanations
-    │   ├── App.jsx                    # Route configuration
-    │   ├── index.css                  # Custom design system & animations
-    │   └── main.jsx                   # React root
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── layout/
+│   │   │   │   ├── Navbar.jsx         # Navigation bar & theme toggle
+│   │   │   │   └── AppLayout.jsx      # Main layout wrapper + toast notifications
+│   │   │   └── regex/
+│   │   │       ├── PatternBreakdown.jsx # Color-coded regex breakdown & syntax cheatsheet
+│   │   │       └── ResultsPanel.jsx   # Accept/Reject cards, match highlights, metrics
+│   │   ├── hooks/
+│   │   │   └── useTheme.jsx           # Theme toggle (dark/light) context
+│   │   ├── pages/
+│   │   │   ├── TesterPage.jsx         # Main multi-string regex validator
+│   │   │   ├── PlaygroundPage.jsx     # Live single-text real-time tester
+│   │   │   ├── ExamplesPage.jsx       # 14 categorized pattern templates
+│   │   │   ├── LearnPage.jsx          # 11-topic FLAT Regular Expressions guide
+│   │   │   ├── HistoryPage.jsx        # Local test history with search & re-testing
+│   │   │   └── SettingsPage.jsx       # Theme preferences & local history management
+│   │   ├── services/
+│   │   │   ├── api.js                 # Axios instance configured with VITE_API_URL
+│   │   │   ├── historyService.js      # Browser localStorage test history manager
+│   │   │   └── regexService.js        # Regex testing API & history interface
+│   │   ├── utils/
+│   │   │   └── regexExamples.js       # Curated example patterns & explanations
+│   │   ├── App.jsx                    # Route configuration
+│   │   ├── index.css                  # Custom design system & animations
+│   │   └── main.jsx                   # React root
+│   ├── .env.example                   # Frontend environment template
+│   ├── vercel.json                    # Single-Page Application (SPA) rewrite rules
+│   └── package.json                   # Frontend dependencies & build script
+│
+├── vercel.json                        # Root-level Vercel configuration fallback
+└── package.json                       # Root dev orchestration scripts
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Local Development
 
 ### Prerequisites
 - **Node.js** (v18 or higher recommended)
-- **MongoDB** (running locally on port `27017` or MongoDB Atlas URI)
+- **npm** (v9 or higher)
 
-### 1. Backend Setup
+### Quick Start (Both Backend & Frontend)
 
+From the project root:
+```bash
+npm run dev
+```
+*(Runs both backend on `http://localhost:5000` and frontend on `http://localhost:5173` concurrently with color-coded logs)*
+
+---
+
+### Running Individual Services
+
+#### Backend
 ```bash
 cd backend
 npm install
+npm run dev      # Starts development server on http://localhost:5000
+npm test         # Runs 18 Jest unit tests
+npm start        # Production start (node src/app.js)
 ```
 
-Configure `.env` (already created with default local settings):
-```env
-PORT=5000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/regexmind
-JWT_SECRET=regexmind_super_secret_jwt_key_2024_change_me
-JWT_EXPIRES_IN=7d
-CLIENT_URL=http://localhost:5173
-```
-
-Start the backend:
-```bash
-# Development (with nodemon)
-npm run dev
-
-# Run unit tests (18 tests)
-npm test
-```
-
-### 2. Frontend Setup
-
+#### Frontend
 ```bash
 cd frontend
 npm install
+npm run dev      # Starts Vite dev server on http://localhost:5173
+npm run build    # Produces production bundle in dist/
 ```
 
-Configure `.env`:
-```env
-VITE_API_URL=http://localhost:5000/api
-```
+---
 
-Start the frontend development server:
-```bash
-npm run dev
-```
+## ☁️ Deployment Guide
 
-Visit **http://localhost:5173** in your browser.
+### 1. Backend Deployment (Voroa)
+
+Deploy the stateless Express API on **Voroa**:
+
+1. **Create New Service** on Voroa connected to your GitHub repository:
+   `https://github.com/Aakash-18-2006/FLAT-Micro-project.git`
+2. **Build & Deploy Settings**:
+   - **Root Directory**: `backend`
+   - **Environment**: Node.js
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+3. **Environment Variables**:
+   | Variable | Value | Description |
+   |---|---|---|
+   | `NODE_ENV` | `production` | Enables production mode |
+   | `PORT` | `5000` *(or leave default if injected by Voroa)* | Port the server listens on |
+   | `CLIENT_URL` | `https://your-frontend.vercel.app` | Allowed CORS origin for your Vercel frontend |
+4. **Health Check**:
+   - Path: `/api/health` (HTTP 200)
+
+---
+
+### 2. Frontend Deployment (Vercel)
+
+Deploy the React Single-Page Application on **Vercel**:
+
+1. **Import Project** on Vercel from your GitHub repository:
+   `https://github.com/Aakash-18-2006/FLAT-Micro-project.git`
+2. **Project Settings**:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+3. **Environment Variables**:
+   | Variable | Value | Description |
+   |---|---|---|
+   | `VITE_API_URL` | `https://your-backend-app.voroa.app/api` | Full URL to your deployed Voroa backend API |
+4. **Deploy**:
+   - Click **Deploy**. Vercel will build the frontend using `vite build` and use `vercel.json` for client-side routing.
+5. **Post-Deploy**:
+   - Copy your Vercel deployment URL (e.g., `https://regexmind-xyz.vercel.app`) and update the `CLIENT_URL` environment variable on Voroa.
 
 ---
 
@@ -133,16 +161,10 @@ Visit **http://localhost:5173** in your browser.
 
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
-| `POST` | `/api/auth/register` | Register new user account | No |
-| `POST` | `/api/auth/login` | Log in and receive JWT token | No |
-| `GET` | `/api/auth/me` | Fetch currently authenticated user | Yes |
-| `POST` | `/api/regex/test` | Test regex against 1–50 strings | Optional (saves if authed) |
-| `POST` | `/api/regex/validate` | Check pattern syntax validity & breakdown | No |
-| `GET` | `/api/regex/history` | Get paginated user test history | Yes |
-| `GET` | `/api/regex/history/:id` | Get specific history entry | Yes |
-| `DELETE` | `/api/regex/history/:id` | Delete history entry | Yes |
-| `DELETE` | `/api/regex/history` | Clear all user test history | Yes |
-| `GET` | `/api/health` | Health check | No |
+| `GET` | `/` | API status and root metadata | No |
+| `GET` | `/api/health` | Health-check endpoint (uptime, mode, timestamp) | No |
+| `POST` | `/api/regex/test` | Test regex against 1–50 strings with timing and offsets | No |
+| `POST` | `/api/regex/validate` | Validate regex pattern syntax and return token breakdown | No |
 
 ---
 
@@ -152,7 +174,7 @@ Visit **http://localhost:5173** in your browser.
    - A regular expression defines a regular language over an alphabet $\Sigma$.
    - Supported operations: Concatenation ($ab$), Alternation ($a|b$), Kleene Star ($a^*$), Positive Closure ($a^+$).
 2. **Deterministic Evaluation**:
-   - Compiles patterns into state-machine-backed evaluation models within JavaScript's V8 engine.
+   - Compiles patterns into state-machine-backed evaluation models within JavaScript's native V8 engine.
 3. **Equivalence & Boundary Testing**:
    - Allows students to test string membership $w \in L(R)$ vs $w \notin L(R)$ across edge cases (empty strings, prefixes, boundary conditions).
 
@@ -160,6 +182,7 @@ Visit **http://localhost:5173** in your browser.
 
 ## 🛡️ Security Features
 
-- **ReDoS Protection**: Pattern length validation, safe regex compilation checks, and input size constraints.
-- **Password Security**: Passwords hashed using bcrypt with salt factor of 12.
-- **API Security**: Helmet HTTP headers, CORS whitelisting, Express Rate Limiter (20 auth attempts / 15m; 200 general requests / 15m).
+- **ReDoS Protection**: Pattern length validation (max 500 chars), test string limits (max 5,000 chars per string, max 50 strings), and regex compilation safety checks.
+- **HTTP Protection**: Helmet security headers.
+- **CORS Whitelisting**: Restricted to `CLIENT_URL` in production.
+- **Rate Limiting**: Express rate limiter guarding against burst flooding (300 requests / 15m).

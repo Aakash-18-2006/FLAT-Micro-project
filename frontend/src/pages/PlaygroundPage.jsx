@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { regexService } from '../services/regexService';
-import { useAuth } from '../hooks/useAuth';
 import { REGEX_EXAMPLES } from '../utils/regexExamples';
 import toast from 'react-hot-toast';
 import PatternBreakdown from '../components/regex/PatternBreakdown';
@@ -8,8 +7,6 @@ import PatternBreakdown from '../components/regex/PatternBreakdown';
 const MAX_STRINGS = 20;
 
 export default function PlaygroundPage() {
-  const { isAuthenticated } = useAuth();
-
   const [regex, setRegex] = useState('(a|b)*abb');
   const [flags, setFlags] = useState('');
   const [testStrings, setTestStrings] = useState(['aabb', 'ababb', 'abab', 'abb', '']);

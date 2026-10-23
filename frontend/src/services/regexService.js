@@ -1,16 +1,17 @@
 import api from './api';
+import { historyService } from './historyService';
 
 export const regexService = {
   /**
-   * Test regex against multiple strings — real engine, no mocking
+   * Test regex against multiple strings — real native engine on backend
    */
-  async test(regex, flags, testStrings, saveToHistory = true) {
-    const { data } = await api.post('/regex/test', { regex, flags, testStrings, saveToHistory });
+  async test(regex, flags, testStrings) {
+    const { data } = await api.post('/regex/test', { regex, flags, testStrings });
     return data;
   },
 
   /**
-   * Validate regex pattern syntax only
+   * Validate regex pattern syntax and retrieve token breakdown
    */
   async validate(regex, flags = '') {
     const { data } = await api.post('/regex/validate', { regex, flags });
@@ -18,34 +19,37 @@ export const regexService = {
   },
 
   /**
-   * Get paginated history for the authenticated user
+   * Get paginated local history with search
    */
   async getHistory(page = 1, limit = 20, search = '') {
-    const { data } = await api.get('/regex/history', { params: { page, limit, search } });
-    return data;
+    return historyService.getHistory(page, limit, search);
   },
 
   /**
-   * Get a single history record by ID
-   */
-  async getHistoryById(id) {
-    const { data } = await api.get(`/regex/history/${id}`);
-    return data;
-  },
-
-  /**
-   * Delete a single history record
+   * Delete a single history record from localStorage
    */
   async deleteHistory(id) {
-    const { data } = await api.delete(`/regex/history/${id}`);
-    return data;
+    return historyService.deleteRecord(id);
   },
 
   /**
-   * Clear all history for the current user
+   * Clear all local history from localStorage
    */
   async clearAllHistory() {
-    const { data } = await api.delete('/regex/history');
-    return data;
+    return historyService.clearHistory();
+  },
+
+  /**
+   * Save a test run to localStorage history
+   */
+  saveToLocalHistory({ regex, flags, testStrings, results, summary }) {
+    return historyService.addRecord({ regex, flags, testStrings, results, summary });
+  },
+
+  /**
+   * Get total count of saved local history records
+   */
+  getHistoryCount() {
+    return historyService.getCount();
   },
 };
